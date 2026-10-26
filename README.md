@@ -9,9 +9,14 @@ pnpm --version # Must print 12.15.0
 pnpm install
 pnpm run repro
 pnpm run repro
+
+# The warning also persists after another explicit install.
+pnpm install
+pnpm run repro
+pnpm run repro
 ```
 
-Both script runs perform another install, print the following warning, and then print `script ran`:
+All four script runs perform another install, print the following warning, and then print `script ran`:
 
 ```text
 [WARN] The install that ran before the script left node_modules out of date, so the next run installs again. a lockfile setting drifted from the current configuration
@@ -35,6 +40,7 @@ TRACE=pacquet::install=debug pnpm --config.verify-deps-before-run=error run repr
 
 - `pnpm-workspace.yaml` enables `dedupePeers`. Installation correctly records `true` in the lockfile.
 - `.pnpmfile.mjs` adds harmless description metadata through `readPackage`. The installed manifest differs from the manifest on disk, forcing the pre-script content check on each run.
+- `optimisticRepeatInstall: false` prevents a later explicit `pnpm install` from taking the optimistic shortcut and refreshing the validation record against the manifest on disk. Without this setting, that shortcut can hide the bug after another install. Disabling it keeps the hook-induced difference present across repeated installs.
 - In pnpm 12.15.0, that content check compares against a hardcoded `dedupePeers: false`, causing it to reject the successful installation repeatedly.
 
 The relevant implementation is [the pnpm 12.15.0 pre-run dependency-status checker](https://github.com/pnpm/pnpm/blob/v12.15.0/pnpm/crates/package-manager/src/optimistic_repeat_install/deps_status.rs).
@@ -43,7 +49,7 @@ No `packageManager` or `devEngines.packageManager` declaration is included: use 
 
 ## Controls
 
-In separate disposable copies, make either change and run `pnpm install`, followed by `pnpm run repro` twice:
+In separate disposable copies, keep `optimisticRepeatInstall: false` and make either change below. Run the full reproduction sequence above, including the second explicit install:
 
 1. Set `dedupePeers: false`, keeping the hook.
 2. Remove `.pnpmfile.mjs`, keeping `dedupePeers: true`.

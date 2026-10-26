@@ -1,1 +1,2 @@
 dedupePeers: true
+optimisticRepeatInstall: false
