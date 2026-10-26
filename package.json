@@ -1,0 +1,7 @@
+{
+  "name": "pnpm-dedupe-peers-bug-repro",
+  "private": true,
+  "scripts": {
+    "repro": "node -e \"console.log('script ran')\""
+  }
+}
